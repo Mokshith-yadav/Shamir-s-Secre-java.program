@@ -1,0 +1,87 @@
+import java.nio.file.Files;
+import java.nio.file.Paths;
+import java.util.ArrayList;
+import java.util.List;
+
+public class SecretSharing {
+
+    public static void main(String[] args) {
+        String jsonInput = readJsonFile("testcase.json");
+
+        // Simple JSON parsing (assuming the format is correct)
+        int n = Integer.parseInt(getValue(jsonInput, "n"));
+        int k = Integer.parseInt(getValue(jsonInput, "k"));
+
+        List<Point> points = new ArrayList<>();
+
+        for (int i = 1; i <= n; i++) {
+            String baseStr = getValue(jsonInput, i + ".base");
+            String valueStr = getValue(jsonInput, i + ".value");
+
+            int base = Integer.parseInt(baseStr);
+            long decodedValue = decodeValue(valueStr, base);
+            points.add(new Point(i, decodedValue));
+        }
+
+        long c = calculateConstantTerm(points, k);
+        System.out.println("The constant term c is: " + c);
+    }
+
+    private static String readJsonFile(String filePath) {
+        try {
+            return new String(Files.readAllBytes(Paths.get(filePath)));
+        } catch (Exception e) {
+            e.printStackTrace();
+            return null;
+        }
+    }
+
+    private static String getValue(String json, String key) {
+        String pattern = "\"" + key + "\":";
+        int startIndex = json.indexOf(pattern) + pattern.length();
+        int endIndex = json.indexOf(",", startIndex);
+        if (endIndex == -1) {
+            endIndex = json.indexOf("}", startIndex);
+        }
+        return json.substring(startIndex).split("\"")[1].trim();
+    }
+
+    private static long decodeValue(String valueStr, int base) {
+        long value = 0;
+        for (int i = 0; i < valueStr.length(); i++) {
+            char digit = valueStr.charAt(i);
+            int digitValue = Character.getNumericValue(digit);
+            value = value * base + digitValue;
+        }
+        return value;
+    }
+
+    private static long calculateConstantTerm(List<Point> points, int k) {
+        long c = 0;
+
+        for (int i = 0; i < k; i++) {
+            long xi = points.get(i).x;
+            long yi = points.get(i).y;
+            long li = 1;
+
+            for (int j = 0; j < k; j++) {
+                if (i != j) {
+                    long xj = points.get(j).x;
+                    li *= -xj / (xi - xj);
+                }
+            }
+            c += yi * li;
+        }
+        return c;
+    }
+
+    static class Point {
+        long x;
+        long y;
+
+        Point(long x, long y) {
+            this.x = x;
+            this.y = y;
+        }
+    }
+}
